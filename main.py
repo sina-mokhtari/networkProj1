@@ -38,8 +38,9 @@ def main():
 
     except BaseException as e:
       print (e)
-      myNetwork.network_connection , addr = myNetwork.network_soccket.accept()
-      print ("A Device connected")
+      if myNetwork.isServer:
+        myNetwork.network_connection , addr = myNetwork.network_soccket.accept()
+        print ("A Device connected")
 
 
 if __name__ == "__main__":
