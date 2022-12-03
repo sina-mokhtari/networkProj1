@@ -4,7 +4,6 @@ import threading
 from time import sleep
 from config import *
 
-
 class MyNetwork:
 
     def __init__(self):
