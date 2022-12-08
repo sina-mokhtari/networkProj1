@@ -4,6 +4,7 @@ import threading
 from time import sleep
 from config import *
 
+
 class MyNetwork:
 
     def __init__(self):
@@ -15,19 +16,10 @@ class MyNetwork:
         self.network_socket = socket.socket()
 
         self.game_socket = socket.socket()
-        self.game_socket.bind(('',8001))
+        self.game_socket.bind(('', 8001))
         self.game_socket.listen(5)
 
-        self.isServer = True
-
-        if self.isServer:
-            self.network_socket.bind(('',1234))
-            self.network_socket.listen(5)
-        else:
-            # for client
-            self.network_connection.connect(('127.0.0.1', 1234))
-
-
+        self.isServer = False
 
         stackChecker = threading.Thread(target=self.checkStack)
         stackChecker.start()
@@ -38,6 +30,7 @@ class MyNetwork:
 # -------------------------------------🏴‍☠️🏴‍☠️---------------------------------------
 # --------------------------------------------------------------------------------
 # -----------------------------🚩 ! Danger Zone ! 🚩-------------------------------
+
 
     def packetStore(self, packets):
         """Each packet contains -> data , pckt_time , ip
@@ -115,13 +108,26 @@ class MyNetwork:
 
 # ----------------------------  Bridge Service Functions -------------------------
 
+
     def Firewall(self, packet):
         return True, packet
 
     def OnGameData(self, data: str):
         print(f"Unity Says: {data}")
-        self.isServer = (data[0] == 'H');
-        self.SendDataToClient(data)
+
+        dataSplitted = data.split(',')
+
+        if (dataSplitted[0] == 'H' or dataSplitted[0] == 'C'):
+            if (data[0] == 'H'):
+                self.isServer = True
+                self.network_socket.bind(('', dataSplitted[2]))
+                self.network_socket.listen(5)
+            else:
+                self.isServer = False
+                self.network_connection.connect(
+                    (dataSplitted[1], dataSplitted[2]))
+        else:
+            self.SendDataToClient(data)
 
     def OnNetworkData(self):
         data = self.ReadLastPacket()
