@@ -120,12 +120,14 @@ class MyNetwork:
         if (dataSplitted[0] == 'H' or dataSplitted[0] == 'C'):
             if (data[0] == 'H'):
                 self.isServer = True
-                self.network_socket.bind(('', dataSplitted[2]))
-                self.network_socket.listen(5)
+                try:
+                    self.network_socket.bind((dataSplitted[1], int(dataSplitted[2])))
+                    self.network_socket.listen(5)
+                except:
+                    print("error")
             else:
-                self.isServer = False
-                self.network_connection.connect(
-                    (dataSplitted[1], dataSplitted[2]))
+                    self.isServer = False
+                    self.network_connection.connect((dataSplitted[1], int(dataSplitted[2])))
         else:
             self.SendDataToClient(data)
 

@@ -17,7 +17,7 @@ def GameDataReceive():
             myNetwork.OnGameData(str(data))
 
         except BaseException as e:
-            print(e)
+           # print(e)
             myNetwork.game_connection, addr = myNetwork.game_socket.accept()
             print(f"Game Connected \n {myNetwork.game_connection}\n")
 
@@ -38,7 +38,7 @@ def main():
                 myNetwork.packetStore([(str(data), time.time(), "ClientIP")])
 
         except BaseException as e:
-            print(e)
+           # print(e)
             if myNetwork.isServer:
                 myNetwork.network_connection, addr = myNetwork.network_socket.accept()
                 print("A Device connected")
