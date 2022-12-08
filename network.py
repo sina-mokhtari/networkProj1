@@ -135,3 +135,4 @@ class MyNetwork:
         data = self.ReadLastPacket()
         print(f"Network Says: {str(data)}")
         self.SendDataToGame(data[0])
+        self.SendDataToGame("OK")
