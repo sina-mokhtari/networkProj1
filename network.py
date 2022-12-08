@@ -17,7 +17,7 @@ class MyNetwork:
 
         self.game_socket = socket.socket()
         self.game_socket.bind(('', 8001))
-        self.game_socket.listen(5)
+        
 
         self.isServer = False
 

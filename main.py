@@ -18,6 +18,7 @@ def GameDataReceive():
 
         except BaseException as e:
            # print(e)
+            myNetwork.game_socket.listen(5)
             myNetwork.game_connection, addr = myNetwork.game_socket.accept()
             print(f"Game Connected \n {myNetwork.game_connection}\n")
 
@@ -40,6 +41,7 @@ def main():
         except BaseException as e:
            # print(e)
             if myNetwork.isServer:
+                myNetwork.network_socket.listen(5)
                 myNetwork.network_connection, addr = myNetwork.network_socket.accept()
                 print("A Device connected")
 
