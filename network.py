@@ -118,7 +118,7 @@ class MyNetwork:
         dataSplitted = data.split(',')
 
         if (dataSplitted[0] == 'H' or dataSplitted[0] == 'C'):
-            if (data[0] == 'H'):
+            if (dataSplitted[0] == 'H'):
                 self.isServer = True
                 try:
                     self.network_socket.bind((dataSplitted[1], int(dataSplitted[2])))
