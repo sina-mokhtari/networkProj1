@@ -113,6 +113,10 @@ class MyNetwork:
         return True, packet
 
     def OnGameData(self, data: str):
+
+        if not data:
+            return
+
         print(f"Unity Says: {data}")
 
         dataSplitted = data.split(',')
