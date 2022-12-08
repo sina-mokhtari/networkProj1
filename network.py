@@ -12,18 +12,22 @@ class MyNetwork:
         self.game_connection = socket.socket()
         self.network_connection = socket.socket()
 
+        self.network_socket = socket.socket()
+
         self.game_socket = socket.socket()
         self.game_socket.bind(('',8001))
-        self.game_socket.listen(5);
-
-        self.network_socket = socket.socket()
-        self.network_socket.bind(('',1234))
-        self.network_socket.listen(5);
+        self.game_socket.listen(5)
 
         self.isServer = True
 
-        # for client
-        # self.network_connection.connect(('127.0.0.1', 1234))
+        if self.isServer:
+            self.network_socket.bind(('',1234))
+            self.network_socket.listen(5)
+        else:
+            # for client
+            self.network_connection.connect(('127.0.0.1', 1234))
+
+
 
         stackChecker = threading.Thread(target=self.checkStack)
         stackChecker.start()
