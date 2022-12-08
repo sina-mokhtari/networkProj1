@@ -116,6 +116,7 @@ class MyNetwork:
 
     def OnGameData(self, data: str):
         print(f"Unity Says: {data}")
+        self.isServer = (data[0] == 'H');
         self.SendDataToClient(data)
 
     def OnNetworkData(self):
