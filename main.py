@@ -44,6 +44,7 @@ def main():
                 myNetwork.network_socket.listen(5)
                 myNetwork.network_connection, addr = myNetwork.network_socket.accept()
                 print("A Device connected")
+                myNetwork.ipAddress = addr
 
 
 if __name__ == "__main__":

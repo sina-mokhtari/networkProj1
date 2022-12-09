@@ -1,6 +1,7 @@
 import random
 import socket
 import threading
+import re
 from time import sleep
 from config import *
 
@@ -17,9 +18,10 @@ class MyNetwork:
 
         self.game_socket = socket.socket()
         self.game_socket.bind(('', 8001))
-        
 
         self.isServer = False
+
+        self.ipAddress = ''
 
         stackChecker = threading.Thread(target=self.checkStack)
         stackChecker.start()
@@ -30,7 +32,6 @@ class MyNetwork:
 # -------------------------------------🏴‍☠️🏴‍☠️---------------------------------------
 # --------------------------------------------------------------------------------
 # -----------------------------🚩 ! Danger Zone ! 🚩-------------------------------
-
 
     def packetStore(self, packets):
         """Each packet contains -> data , pckt_time , ip
@@ -108,9 +109,13 @@ class MyNetwork:
 
 # ----------------------------  Bridge Service Functions -------------------------
 
-
     def Firewall(self, packet):
-        return True, packet
+        data, time, ip = packet
+        if ((not re.match('[0-1],[0-9],[0-9]', str(data))) or (ip != "ClientIP")):
+            return False, packet
+        else:
+            return True, packet
+        # return (True, packet) if (re.match('[0-1],[0-9],[0-9]', str(packet))) else (False, packet)
 
     def OnGameData(self, data: str):
 
@@ -119,19 +124,23 @@ class MyNetwork:
 
         print(f"Unity Says: {data}")
 
+        # if(data == "CLOSE"):
+
         dataSplitted = data.split(',')
 
         if (dataSplitted[0] == 'H' or dataSplitted[0] == 'C'):
             if (dataSplitted[0] == 'H'):
                 self.isServer = True
                 try:
-                    self.network_socket.bind((dataSplitted[1], int(dataSplitted[2])))
+                    self.network_socket.bind(
+                        (dataSplitted[1], int(dataSplitted[2])))
                     self.network_socket.listen(5)
                 except:
                     print("error")
             else:
-                    self.isServer = False
-                    self.network_connection.connect((dataSplitted[1], int(dataSplitted[2])))
+                self.isServer = False
+                self.network_connection.connect(
+                    (dataSplitted[1], int(dataSplitted[2])))
         else:
             self.SendDataToClient(data)
 
