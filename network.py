@@ -111,7 +111,7 @@ class MyNetwork:
 
     def Firewall(self, packet):
         data, time, ip = packet
-        if ((not re.match('[0-1],[0-9],[0-9]', str(data))) or (ip != "ClientIP")):
+        if ((ip != "ClientIP") or (not re.match('[0-1],[0-9],[0-9]', str(data)))):
             return False, packet
         else:
             return True, packet
@@ -124,7 +124,8 @@ class MyNetwork:
 
         print(f"Unity Says: {data}")
 
-        # if(data == "CLOSE"):
+        if (data == "CLOSE"):
+            return
 
         dataSplitted = data.split(',')
 
@@ -142,10 +143,37 @@ class MyNetwork:
                 self.network_connection.connect(
                     (dataSplitted[1], int(dataSplitted[2])))
         else:
-            self.SendDataToClient(data)
+            crc = self.CrcCalculate(data)
+            x = data + "," + str(crc)
+            self.SendDataToClient(x)
+            print(x[0:5])
+            print(x.split(',')[3])
 
     def OnNetworkData(self):
         data = self.ReadLastPacket()
         print(f"Network Says: {str(data)}")
-        self.SendDataToGame(data[0])
-        self.SendDataToGame("OK")
+        if (re.match('[0-1],[0-9],[0-9]', data[0])):
+            crc = data[0].split(',')[3]
+            if self.CrcCalculate(data[0][0:5]) == crc:
+                self.SendDataToGame(data[0][0:5])
+                self.SendDataToGame("OK")
+
+    def CrcCalculate(self, data: str):
+        s = 0
+        for i in range(0, len(data), 2):
+            if (i+1) < len(data):
+                a = ord(data[i])
+                b = ord(data[i+1])
+                s = s + (a+(b << 8))
+            elif (i+1) == len(data):
+                s += ord(data[i])
+            else:
+                raise "Something Wrong here"
+
+        s = s + (s >> 16)
+        s = ~s & 0xffff
+
+        return s
+
+    def CrcCheck(self, data: str, crc):
+        return self.CrcCalculate(data) == crc
