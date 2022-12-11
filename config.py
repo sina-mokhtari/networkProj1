@@ -4,7 +4,7 @@ network_port = 8002
 max_stack_size = 20
 network_delay = 1.0
 
-DDoS = False
+DDoS = True
 pcktCount = max_stack_size + 5
 Chance_DDoS = 0.4
 

@@ -39,7 +39,7 @@ def main():
                 myNetwork.packetStore([(str(data), time.time(), "ClientIP")])
 
         except BaseException as e:
-           # print(e)
+            # print(e)
             if myNetwork.isServer:
                 myNetwork.network_socket.listen(5)
                 myNetwork.network_connection, addr = myNetwork.network_socket.accept()

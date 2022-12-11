@@ -152,9 +152,10 @@ class MyNetwork:
     def OnNetworkData(self):
         data = self.ReadLastPacket()
         print(f"Network Says: {str(data)}")
-        if (re.match('[0-1],[0-9],[0-9]', data[0])):
+        
+        if (re.match('[0-1],[0-9],[0-9]', data[0][0:5])):
             crc = data[0].split(',')[3]
-            if self.CrcCalculate(data[0][0:5]) == crc:
+            if self.CrcCheck(data[0][0:5], crc):
                 self.SendDataToGame(data[0][0:5])
                 self.SendDataToGame("OK")
 
@@ -175,5 +176,5 @@ class MyNetwork:
 
         return s
 
-    def CrcCheck(self, data: str, crc):
-        return self.CrcCalculate(data) == crc
+    def CrcCheck(self, data: str, crc: str):
+        return self.CrcCalculate(data) == int(crc)
