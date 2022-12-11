@@ -35,7 +35,7 @@ def main():
         try:
             data = myNetwork.network_connection.recv(1024).decode()
             if data:
-                myNetwork.packetStore([(str(data), time.time(), "ClientIP")])
+                myNetwork.packetStore([(str(data), time.time(), str(myNetwork.ipAddress))])
 
         except BaseException as e:
             # print(e)

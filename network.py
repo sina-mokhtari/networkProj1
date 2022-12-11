@@ -114,7 +114,7 @@ class MyNetwork:
 
     def Firewall(self, packet):
         data, time, ip = packet
-        if ((ip != "ClientIP") or (not re.match('[1-2],[0-9],[0-9]', str(data)))):
+        if ((ip != str(self.ipAddress)) or (not re.match('[1-2],[0-9],[0-9]', str(data)))):
             return False, packet
         else:
             return True, packet
@@ -143,6 +143,7 @@ class MyNetwork:
                     print("error")
             else:
                 self.isServer = False
+                self.ipAddress = dataSplitted[1]
                 self.network_connection.connect(
                     (dataSplitted[1], int(dataSplitted[2])))
         else:
