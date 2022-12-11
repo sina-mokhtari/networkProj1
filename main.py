@@ -17,7 +17,6 @@ def GameDataReceive():
             myNetwork.OnGameData(str(data))
 
         except BaseException as e:
-            print(f"salam {e}")
             myNetwork.game_socket.listen(5)
             myNetwork.game_connection, addr = myNetwork.game_socket.accept()
             print(f"Game Connected \n {myNetwork.game_connection}\n")

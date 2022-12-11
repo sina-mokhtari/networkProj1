@@ -46,12 +46,15 @@ class MyNetwork:
                 index_3 = random.randint(0, len(data) - 1)
                 data = data.replace(data[index_1], data[index_2])
                 data = data[:index_3] + '$' + data[index_3+1:]
+                # edited by us ###############################
+                _pckt = data, pckt_time, ip
 
             if PacketLoss and random.randint(0, 100) < Chance_Loss * 100:
                 print("--- Packet Loss ---")
                 continue
 
             safe, pckt = self.Firewall(_pckt)
+
             if not safe:
                 continue
 
@@ -111,7 +114,7 @@ class MyNetwork:
 
     def Firewall(self, packet):
         data, time, ip = packet
-        if ((ip != "ClientIP") or (not re.match('[0-1],[0-9],[0-9]', str(data)))):
+        if ((ip != "ClientIP") or (not re.match('[1-2],[0-9],[0-9]', str(data)))):
             return False, packet
         else:
             return True, packet
@@ -153,11 +156,14 @@ class MyNetwork:
         data = self.ReadLastPacket()
         print(f"Network Says: {str(data)}")
         
-        if (re.match('[0-1],[0-9],[0-9]', data[0][0:5])):
+        if (re.match('[1-2],[0-9],[0-9]', data[0][0:5])):
             crc = data[0].split(',')[3]
             if self.CrcCheck(data[0][0:5], crc):
                 self.SendDataToGame(data[0][0:5])
                 self.SendDataToGame("OK")
+
+        else:
+            print("something wrong")
 
     def CrcCalculate(self, data: str):
         s = 0
