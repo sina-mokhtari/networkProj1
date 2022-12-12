@@ -21,6 +21,8 @@ class MyNetwork:
 
         self.isServer = False
 
+        self.networkAvailable = False
+
         self.ipAddress = ''
 
         stackChecker = threading.Thread(target=self.checkStack)
@@ -128,24 +130,26 @@ class MyNetwork:
         print(f"Unity Says: {data}")
 
         if (data == "CLOSE"):
+            self.networkAvailable = False
             return
 
         dataSplitted = data.split(',')
 
         if (dataSplitted[0] == 'H' or dataSplitted[0] == 'C'):
-            if (dataSplitted[0] == 'H'):
-                self.isServer = True
-                try:
-                    self.network_socket.bind(
+            if not (self.networkAvailable):
+                if (dataSplitted[0] == 'H'):
+                    self.isServer = True
+                    try:
+                        self.network_socket.bind(
+                            (dataSplitted[1], int(dataSplitted[2])))
+                        #self.network_socket.listen(5)
+                    except:
+                        print("error")
+                else:
+                    self.isServer = False
+                    self.ipAddress = dataSplitted[1]
+                    self.network_connection.connect(
                         (dataSplitted[1], int(dataSplitted[2])))
-                    self.network_socket.listen(5)
-                except:
-                    print("error")
-            else:
-                self.isServer = False
-                self.ipAddress = dataSplitted[1]
-                self.network_connection.connect(
-                    (dataSplitted[1], int(dataSplitted[2])))
         else:
             crc = self.CrcCalculate(data)
             x = data + "," + str(crc)

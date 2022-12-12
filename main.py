@@ -42,6 +42,7 @@ def main():
             if myNetwork.isServer:
                 myNetwork.network_socket.listen(5)
                 myNetwork.network_connection, addr = myNetwork.network_socket.accept()
+                myNetwork.networkAvailable = True
                 print("A Device connected")
                 myNetwork.ipAddress = addr
 
