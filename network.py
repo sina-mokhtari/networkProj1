@@ -5,8 +5,8 @@ import re
 import time
 from time import sleep
 from config import *
-RTT = 1
 
+RTT = 1
 
 class MyNetwork:
 
@@ -33,12 +33,13 @@ class MyNetwork:
 
         self.waitingForAck = False
 
-        self.turn = 0
+        self.seqNum = 1
+
+        self.prevSeq = 1
 
         self.timeoutReached = False
 
-        self.lastSentPckt = ""
-        self.lastRcvdPckt = ""
+        self.lastSentPckt = ''
 
         stackChecker = threading.Thread(target=self.checkStack)
         stackChecker.start()
@@ -169,13 +170,13 @@ class MyNetwork:
                     self.ipAddress = dataSplitted[1]
                     self.network_connection.connect(
                         (dataSplitted[1], int(dataSplitted[2])))
+
         else:
             crc = self.CrcCalculate(data)
-            self.changeTurn()
-            print(f"turn in onGameData: {self.turn}")
-            self.lastSentPckt = data + "," + str(self.turn) + "," + str(crc)
+            self.changeSeq()
+            #print(f"turn in onGameData: {self.seqNum}")
+            self.lastSentPckt = data + "," + str(self.seqNum) + "," + str(crc)
             self.SendDataToClient(self.lastSentPckt)
-            print(f"sending {self.lastSentPckt}")
             self.waitingForAck = True
             self.sendTime = time.time()
             # print(self.lastSentPckt[0:5])
@@ -185,34 +186,33 @@ class MyNetwork:
         data = self.ReadLastPacket()
         print(f"Network Says: {str(data)}")
 
-        if (data[0] == "ACK0"):
-            if self.turn == 0 :
-                self.waitingForAck = False
-                self.SendDataToGame("OK")
-            return
+        # receive ack
+        if self.waitingForAck:
+            if (data[0] == "ACK0"):
+                if self.seqNum == 0 :
+                    self.waitingForAck = False
+                return
 
+            if (data[0] == "ACK1"):
+                if self.seqNum == 1 :
+                    self.waitingForAck = False
+                return
+            
+            if ((data[0] == "ACK0" and self.seqNum == 1) or (data[0] == "ACK1" and self.seqNum == 0)):
+                return
 
-        if (data[0] == "ACK1"):
-            if self.turn == 1 :
-                self.waitingForAck = False
-                self.SendDataToGame("OK")
-            return
-        
-        if ((data[0] == "ACK0" and self.turn == 1) or (data[0] == "ACK1" and self.turn == 0)):
-            return
-
+        # receive data
         if (re.match('[1-2],[0-9],[0-9]', data[0][0:5])):
             crc = data[0].split(',')[4]
-            if self.CrcCheck(data[0][0:5], crc):
-                if(data == self.lastRcvdPckt):
-                    self.SendDataToClient("ACK" + str(self.turn))
-                else:
-                    self.lastRcvdPckt = data
-                    self.changeTurn()
-                    print(f"turn in onNetworkData: {self.turn}")
-                    self.SendDataToClient("ACK" + str(self.turn))
-                    self.SendDataToGame(data[0][0:5])
-                    self.SendDataToGame("OK")
+            if not(self.CrcCheck(data[0][0:5], crc)) or data[0][4] == self.prevSeq: #?????????????
+                # packet destroyed or out of order, send previous ACK
+                self.SendDataToClient("ACK" + str(self.prevSeq))
+            else:
+                #print(f"turn in onNetworkData: {self.rcvTurn}")
+                self.SendDataToClient("ACK" + str(data[0][4]))  #?????????????
+                self.SendDataToGame(data[0][0:5])
+                self.SendDataToGame("OK")
+                self.prevSeq = data[0][4]   #?????????????
 
         else:
             print("something wrong")
@@ -244,5 +244,5 @@ class MyNetwork:
                 self.SendDataToClient(self.lastSentPckt)
                 self.sendTime = time.time()
 
-    def changeTurn(self):
-        self.turn = 1 if (self.turn == 0) else 0
+    def changeSeq(self):
+        self.seqNum = 1 if (self.seqNum == 0) else 0
