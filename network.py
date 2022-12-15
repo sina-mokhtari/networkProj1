@@ -2,8 +2,10 @@ import random
 import socket
 import threading
 import re
+import time
 from time import sleep
 from config import *
+RTT = 1
 
 
 class MyNetwork:
@@ -23,10 +25,26 @@ class MyNetwork:
 
         self.networkAvailable = False
 
+        self.gameAvailable = False
+
         self.ipAddress = ''
+
+        self.sendTime = 0
+
+        self.waitingForAck = False
+
+        self.turn = 0
+
+        self.timeoutReached = False
+
+        self.lastSentPckt = ""
+        self.lastRcvdPckt = ""
 
         stackChecker = threading.Thread(target=self.checkStack)
         stackChecker.start()
+
+        timeoutChecker = threading.Thread(target=self.TimeoutCheck)
+        timeoutChecker.start()
 
 
 # ---------------------------- ! Dont Touch My Code ! ----------------------------
@@ -117,6 +135,7 @@ class MyNetwork:
     def Firewall(self, packet):
         data, time, ip = packet
         if ((ip != str(self.ipAddress)) or (not re.match('[1-2],[0-9],[0-9]', str(data)))):
+            print(" DDoS Blocked :))))) ")
             return False, packet
         else:
             return True, packet
@@ -152,20 +171,42 @@ class MyNetwork:
                         (dataSplitted[1], int(dataSplitted[2])))
         else:
             crc = self.CrcCalculate(data)
-            x = data + "," + str(crc)
-            self.SendDataToClient(x)
-            print(x[0:5])
-            print(x.split(',')[3])
+            self.changeTurn()
+            self.lastSentPckt = data + "," + str(self.turn) + "," + str(crc)
+            self.SendDataToClient(self.lastSentPckt)
+            self.waitingForAck = True
+            self.sendTime = time.time()
+            print(self.lastSentPckt[0:5])
+            print(self.lastSentPckt.split(',')[4])
 
     def OnNetworkData(self):
         data = self.ReadLastPacket()
         print(f"Network Says: {str(data)}")
-        
-        if (re.match('[1-2],[0-9],[0-9]', data[0][0:5])):
-            crc = data[0].split(',')[3]
-            if self.CrcCheck(data[0][0:5], crc):
-                self.SendDataToGame(data[0][0:5])
+
+        if (data == "ACK0"):
+            if self.turn == 0 :
+                self.waitingForAck = False
                 self.SendDataToGame("OK")
+
+
+        if (data == "ACK1"):
+            if self.turn == 1 :
+                self.waitingForAck = False
+                self.SendDataToGame("OK")
+        
+        if ((data == "ACK0" & self.turn == 1) | (data == "ACK1" & self.turn == 0)):
+            pass
+
+        if (re.match('[1-2],[0-9],[0-9]', data[0][0:5])):
+            crc = data[0].split(',')[4]
+            if self.CrcCheck(data[0][0:5], crc):
+                if(data == self.lastRcvdPckt):
+                    self.SendDataToClient("ACK" + str(self.turn))
+                else:
+                    self.changeTurn()
+                    self.SendDataToClient("ACK" + str(self.turn))
+                    self.SendDataToGame(data[0][0:5])
+                    self.SendDataToGame("OK")
 
         else:
             print("something wrong")
@@ -189,3 +230,13 @@ class MyNetwork:
 
     def CrcCheck(self, data: str, crc: str):
         return self.CrcCalculate(data) == int(crc)
+
+    def TimeoutCheck(self):
+        if self.waitingForAck:
+            if (time.time() - self.sendTime > RTT):
+                # self.timeoutReached = True
+                self.SendDataToClient(self.lastSentPckt)
+                self.sendTime = time.time()
+
+    def changeTurn(self):
+        self.turn = 1 if (self.turn == 0) else 0
