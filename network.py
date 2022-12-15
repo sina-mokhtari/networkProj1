@@ -134,7 +134,7 @@ class MyNetwork:
 
     def Firewall(self, packet):
         data, time, ip = packet
-        if ((ip != str(self.ipAddress)) or (not re.match('[1-2],[0-9],[0-9]', str(data)))):
+        if ((ip != str(self.ipAddress))):
             print(" DDoS Blocked :))))) ")
             return False, packet
         else:
@@ -172,30 +172,34 @@ class MyNetwork:
         else:
             crc = self.CrcCalculate(data)
             self.changeTurn()
+            print(f"turn in onGameData: {self.turn}")
             self.lastSentPckt = data + "," + str(self.turn) + "," + str(crc)
             self.SendDataToClient(self.lastSentPckt)
+            print(f"sending {self.lastSentPckt}")
             self.waitingForAck = True
             self.sendTime = time.time()
-            print(self.lastSentPckt[0:5])
-            print(self.lastSentPckt.split(',')[4])
+            # print(self.lastSentPckt[0:5])
+            # print(self.lastSentPckt.split(',')[4])
 
     def OnNetworkData(self):
         data = self.ReadLastPacket()
         print(f"Network Says: {str(data)}")
 
-        if (data == "ACK0"):
+        if (data[0] == "ACK0"):
             if self.turn == 0 :
                 self.waitingForAck = False
                 self.SendDataToGame("OK")
+            return
 
 
-        if (data == "ACK1"):
+        if (data[0] == "ACK1"):
             if self.turn == 1 :
                 self.waitingForAck = False
                 self.SendDataToGame("OK")
+            return
         
-        if ((data == "ACK0" & self.turn == 1) | (data == "ACK1" & self.turn == 0)):
-            pass
+        if ((data[0] == "ACK0" and self.turn == 1) or (data[0] == "ACK1" and self.turn == 0)):
+            return
 
         if (re.match('[1-2],[0-9],[0-9]', data[0][0:5])):
             crc = data[0].split(',')[4]
@@ -203,7 +207,9 @@ class MyNetwork:
                 if(data == self.lastRcvdPckt):
                     self.SendDataToClient("ACK" + str(self.turn))
                 else:
+                    self.lastRcvdPckt = data
                     self.changeTurn()
+                    print(f"turn in onNetworkData: {self.turn}")
                     self.SendDataToClient("ACK" + str(self.turn))
                     self.SendDataToGame(data[0][0:5])
                     self.SendDataToGame("OK")
