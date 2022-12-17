@@ -6,7 +6,7 @@ import time
 from time import sleep
 from config import *
 
-RTT = 200
+RTT = 15
 
 
 class MyNetwork:
@@ -23,10 +23,6 @@ class MyNetwork:
         self.game_socket.bind(('', 8001))
 
         self.isServer = False
-
-        self.networkAvailable = False
-
-        self.gameAvailable = False
 
         self.gameConnected = False
 
@@ -47,8 +43,6 @@ class MyNetwork:
         self.seqNum = 1
 
         self.prevSeq = 1
-
-        self.timeoutReached = False
 
         self.lastSentPckt = ''
 
@@ -122,7 +116,18 @@ class MyNetwork:
         try:
             self.network_connection.send(data.encode())
         except BaseException as e:
-            print(e)
+            if self.gameConnected:
+                if self.isServer:
+                    self.network_socket.bind(
+                                (self.ownIpAddress, self.ownPortNumber))
+                    self.network_socket.listen(5)
+                    self.network_connection, addr = self.network_socket.accept()
+                    print("A Device connected")
+                    self.ipPort = addr
+                else:
+                    self.network_connection.connect(
+                            (self.ipAddress, self.portNumber))
+                    self.ipPort = self.network_connection.getpeername()
 
     def SendDataToGame(self, data: str):
         """Send packet data to Game
@@ -147,11 +152,10 @@ class MyNetwork:
     def Firewall(self, packet):
         data, time, ip = packet
         if ((ip != str(self.ipPort))):
-            print(" DDoS Blocked :))))) ")
+            #print(" DDoS Blocked :))))) ")
             return False, packet
         else:
             return True, packet
-        # return (True, packet) if (re.match('[0-1],[0-9],[0-9]', str(packet))) else (False, packet)
 
     def OnGameData(self, data: str):
 
@@ -161,56 +165,39 @@ class MyNetwork:
         print(f"Unity Says: {data}")
 
         if (data == "CLOSE"):
-            self.networkAvailable = False
             return
 
         dataSplitted = data.split(',')
 
         if (dataSplitted[0] == 'H' or dataSplitted[0] == 'C'):
-            if not (self.networkAvailable):
-                if (dataSplitted[0] == 'H'):
-                    self.gameConnected = True
-                    self.isServer = True
-                    self.ownIpAddress = dataSplitted[1]
-                    self.ownPortNumber = int(dataSplitted[2])
-                    try:
-                        pass
-                        # self.network_socket.bind(
-                        #     (dataSplitted[1], int(dataSplitted[2])))
-                        # self.network_socket.listen(5)
-                    except:
-                        print("error")
-                else:
-                    self.gameConnected = True
-                    self.isServer = False
-                    self.ipAddress = dataSplitted[1]
-                    self.portNumber = int(dataSplitted[2])
-                    # self.network_connection.connect(
-                    #     (dataSplitted[1], int(dataSplitted[2])))
-
+            if (dataSplitted[0] == 'H'):
+                self.isServer = True
+                self.ownIpAddress = dataSplitted[1]
+                self.ownPortNumber = int(dataSplitted[2])
+            else:
+                self.isServer = False
+                self.ipAddress = dataSplitted[1]
+                self.portNumber = int(dataSplitted[2])
+            self.gameConnected = True
         else:
 
-            if self.isServer and data[0] == '2':
-                return
+            # if self.isServer and data[0] == '2':
+            #     return
 
-            if (not self.isServer) and data[0] == '1':
-                return
+            # if (not self.isServer) and data[0] == '1':
+            #     return
 
             crc = self.CrcCalculate(data)
             self.changeSeq()
-            #print(f"turn in onGameData: {self.seqNum}")
             self.lastSentPckt = data + "," + str(self.seqNum) + "," + str(crc)
             print(f"last: {self.lastSentPckt}")
             self.SendDataToClient(self.lastSentPckt)
             self.waitingForAck = True
             self.sendTime = round(time.time()*1000)
-            # print(self.lastSentPckt[0:5])
-            # print(self.lastSentPckt.split(',')[4])
 
     def OnNetworkData(self):
         data = self.ReadLastPacket()
         print(f"Network Says: {str(data)}")
-
         # receive ack
         if self.waitingForAck:
             if (data[0] == "ACK0"):
@@ -238,7 +225,6 @@ class MyNetwork:
         # receive data
         if (re.match('[1-2],[0-9],[0-9]', data[0][0:5])):
             crc = data[0].split(',')[4]
-            # ?????????????
             if not (self.CrcCheck(data[0][0:5], crc)) or data[0].split(',')[3] == self.prevSeq:
                 # packet destroyed or out of order, send previous ACK
                 print(
@@ -247,10 +233,10 @@ class MyNetwork:
             else:
                 #print(f"turn in onNetworkData: {self.rcvTurn}")
                 self.SendDataToClient(
-                    "ACK" + str(data[0].split(',')[3]))  # ?????????????
+                    "ACK" + str(data[0].split(',')[3]))
                 self.SendDataToGame(data[0][0:5])
                 self.SendDataToGame("OK")
-                self.prevSeq = data[0].split(',')[3]  # ?????????????
+                self.prevSeq = data[0].split(',')[3]
 
         else:
             print(f"something wrong with this data: {data}")
@@ -273,16 +259,12 @@ class MyNetwork:
         return s
 
     def CrcCheck(self, data: str, crc: str):
-        if (re.search('[^0-9]', crc)):
-            return False
-
         return self.CrcCalculate(data) == int(crc)
 
     def TimeoutCheck(self):
         while True:
             if self.waitingForAck:
                 if (round(time.time()*1000) - self.sendTime > RTT):
-                    # self.timeoutReached = True
                     print(
                         f"timeout reached!! sending again: {self.lastSentPckt}")
                     self.SendDataToClient(self.lastSentPckt)

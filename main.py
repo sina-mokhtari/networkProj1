@@ -34,27 +34,32 @@ def main():
     while True:
         try:
             data = myNetwork.network_connection.recv(1024).decode()
-            # someIpPort = myNetwork.network_connection.getpeername()
-            # print(f"received from: {someIpPort}\nwith data: {data}");
             if data:
                 myNetwork.packetStore([(str(data), time.time(), str(myNetwork.ipPort))])
 
         except BaseException as e:
-            # print(e)
             if myNetwork.gameConnected:
                 if myNetwork.isServer:
-                    myNetwork.network_socket.bind(
-                                (myNetwork.ownIpAddress, myNetwork.ownPortNumber))
-                    myNetwork.network_socket.listen(5)
+                    try:    # 
+                        myNetwork.network_socket.bind(
+                                    (myNetwork.ownIpAddress, myNetwork.ownPortNumber))
+                        print(f"binding on {myNetwork.ownIpAddress} : {myNetwork.ownPortNumber}")
+                        myNetwork.network_socket.listen(5)
+                    except:
+                        pass
                     myNetwork.network_connection, addr = myNetwork.network_socket.accept()
-                    myNetwork.networkAvailable = True
                     print("A Device connected")
                     myNetwork.ipPort = addr
                     # print(f"from server {myNetwork.ipPort}")
                 else:
-                    myNetwork.network_connection.connect(
-                            (myNetwork.ipAddress, myNetwork.portNumber))
-                    myNetwork.ipPort = myNetwork.network_connection.getpeername()
+                    while True:
+                        try:
+                            myNetwork.network_connection.connect(
+                                    (myNetwork.ipAddress, myNetwork.portNumber))
+                            myNetwork.ipPort = myNetwork.network_connection.getpeername()
+                            break
+                        except:
+                            continue
 
 
 
