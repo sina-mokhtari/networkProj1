@@ -7,6 +7,7 @@ from time import sleep
 from config import *
 
 RTT = 15
+RTT_NEW = 0.015
 
 
 class MyNetwork:
@@ -49,8 +50,8 @@ class MyNetwork:
         stackChecker = threading.Thread(target=self.checkStack)
         stackChecker.start()
 
-        timeoutChecker = threading.Thread(target=self.TimeoutCheck)
-        timeoutChecker.start()
+        # timeoutChecker = threading.Thread(target=self.TimeoutCheck)
+        # timeoutChecker.start()
 
 
 # ---------------------------- ! Dont Touch My Code ! ----------------------------
@@ -58,6 +59,7 @@ class MyNetwork:
 # -------------------------------------🏴‍☠️🏴‍☠️---------------------------------------
 # --------------------------------------------------------------------------------
 # -----------------------------🚩 ! Danger Zone ! 🚩-------------------------------
+
 
     def packetStore(self, packets):
         """Each packet contains -> data , pckt_time , ip
@@ -119,14 +121,14 @@ class MyNetwork:
             if self.gameConnected:
                 if self.isServer:
                     self.network_socket.bind(
-                                (self.ownIpAddress, self.ownPortNumber))
+                        (self.ownIpAddress, self.ownPortNumber))
                     self.network_socket.listen(5)
                     self.network_connection, addr = self.network_socket.accept()
                     print("A Device connected")
                     self.ipPort = addr
                 else:
                     self.network_connection.connect(
-                            (self.ipAddress, self.portNumber))
+                        (self.ipAddress, self.portNumber))
                     self.ipPort = self.network_connection.getpeername()
 
     def SendDataToGame(self, data: str):
@@ -149,6 +151,7 @@ class MyNetwork:
 
 # ----------------------------  Bridge Service Functions -------------------------
 
+
     def Firewall(self, packet):
         data, time, ip = packet
         if ((ip != str(self.ipPort))):
@@ -165,22 +168,28 @@ class MyNetwork:
         print(f"Unity Says: {data}")
 
         if (data == "CLOSE"):
+            self.gameConnected = False
             return
 
         dataSplitted = data.split(',')
 
         if (dataSplitted[0] == 'H' or dataSplitted[0] == 'C'):
-            if (dataSplitted[0] == 'H'):
-                self.isServer = True
-                self.ownIpAddress = dataSplitted[1]
-                self.ownPortNumber = int(dataSplitted[2])
-            else:
-                self.isServer = False
-                self.ipAddress = dataSplitted[1]
-                self.portNumber = int(dataSplitted[2])
-            self.gameConnected = True
+            if not self.gameConnected:
+                if (dataSplitted[0] == 'H'):
+                    self.isServer = True
+                    self.ownIpAddress = dataSplitted[1]
+                    self.ownPortNumber = int(dataSplitted[2])
+                else:
+                    self.isServer = False
+                    self.ipAddress = dataSplitted[1]
+                    self.portNumber = int(dataSplitted[2])
+                self.gameConnected = True
         else:
 
+            if self.waitingForAck:
+                print("waiting for previous move ack; ignoring new move")
+                self.SendDataToGame("FAIL")
+                return
             # if self.isServer and data[0] == '2':
             #     return
 
@@ -194,6 +203,7 @@ class MyNetwork:
             self.SendDataToClient(self.lastSentPckt)
             self.waitingForAck = True
             self.sendTime = round(time.time()*1000)
+            threading.Timer(RTT_NEW, self.TimeoutCheckNew).start()
 
     def OnNetworkData(self):
         data = self.ReadLastPacket()
@@ -269,6 +279,12 @@ class MyNetwork:
                         f"timeout reached!! sending again: {self.lastSentPckt}")
                     self.SendDataToClient(self.lastSentPckt)
                     self.sendTime = round(time.time()*1000)
+
+    def TimeoutCheckNew(self):
+        if self.waitingForAck:
+            print(f"timeout reached!! sending again: {self.lastSentPckt}")
+            self.SendDataToClient(self.lastSentPckt)
+            threading.Timer(RTT_NEW, self.TimeoutCheckNew).start()
 
     def changeSeq(self):
         self.seqNum = 1 if (self.seqNum == 0) else 0
